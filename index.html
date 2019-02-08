@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+    <title>Socket.IO Digital Scales</title>
+</head>
+<body>
+    <div>
+        <textarea id="log" rows="30"></textarea>
+        <button type="button" id="ping">Scale</button>
+        <p>ConsoleId: <span id="consoleId"></span></p>
+        <h3 id="consoleData"></h3>
+        <p><small id="status"></small></p>
+    </div>
+    <div>
+        <p>List of Console</p>
+        <ul id="list"></ul>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+        var $consoleId = $('#consoleId');
+        var consoleSocketId;
+        var weight;
+        var $log = $('#log');
+        var $list = $('#list');
+        var $consoleData = $('#consoleData');
+        var $status = $('#status');
+        var activeConsoles = [];
+        var activeConsole = {};
+        var connectedConsole = {};
+        var socket = io("http://localhost:12695");
+
+        $(function () {
+
+            init();
+
+            socket.on('console_list', function(data) {
+                setConsoleList(data);
+            });
+
+            socket.on('transmit_data', function(data) {
+                weight = parseFloat(data.replace("\n", ""));
+                log(weight);
+                $status.html('Transmitting...');
+                $consoleData.html(weight);
+            });
+
+            $('#ping').on('click', function() {
+                $status.html('Requesting...');
+                socket.emit('console_transmit_data', { socketId: socket.id, consoleSocketId });
+            });
+
+            function log(data) {
+                var currVal = $log.val();
+                var newVal = currVal + JSON.stringify(data) + "\n";
+                $log.val(newVal);
+            }
+
+            function init() {
+                socket.emit('console_list', {});
+                $status.html('Initialize...');
+            }
+
+            function setConsoleList(list) {
+                activeConsoles = list;
+                activeConsole = activeConsoles.reverse()[0];
+
+                list.map((d) => {
+                    $list.append(itemList(d));
+                });
+            }
+
+            function itemList(d) {
+                return [
+                    '<li>',
+                        '<label for="consoleId">',
+                            '<input type="radio" onchange="radioEvent(this)" socketId="'+d.socketId+'" name="consoleId">',
+                            d.deviceName,
+                        '</label>',
+                    '</li>'
+                ].join("");
+            }
+        });
+
+        function radioEvent(e) {
+            consoleSocketId = $(e).attr('socketId');
+            $consoleId.html(consoleSocketId);
+        }
+    </script>
+</body>
+</html>
