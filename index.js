@@ -1,5 +1,5 @@
 const config = require('./config')(process.env.NODE_ENV);
-const http = require(`http`).Server(app);
+const http = require(`http`).createServer();
 const io = require(`socket.io`)(http);
 const serverPort = config('socket_port');
 
